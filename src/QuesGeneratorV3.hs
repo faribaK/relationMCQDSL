@@ -19,9 +19,8 @@ data Question a b v where
  MCQ     :: (Show a, Show b, Show v) => Statement a  -> [Options b v]  -> Question a b v
 -- RandMCQ :: Statement a  -> IO [Options b] -> Question a b
  (:++:)  :: Question a b v1 -> Question a b v2 -> Question a b (v1, v2)
- (:||:)  :: Question a b v1 -> Question c d v2
-                                           -> Question (a, c) (b, d) (v1, v2)
- Quiz    :: String       -> Question a b v -> Question a b v
+ (:||:)  :: Question a b v1 -> Question c d v2 -> Question (a, c) (b, d) (v1, v2)
+ Quiz    :: String          -> Question a b v  -> Question a b v
  
 infixl 3 :++:
 infixl 2 :||: 
@@ -34,14 +33,14 @@ getLStatement n r = L  (getNthDomain n r) (getQStringRelatedBy r)
 getRStatement :: Ord b => Int -> Relation a b -> Statement b
 getRStatement n r = R (getNthRange n r) (getQStringRelatedBy r)
 
-getOptsFromList :: [a] -> Bool -> [Options a Bool]
+getOptsFromList :: [a] -> v -> [Options a v]
 getOptsFromList []     b  = []
 getOptsFromList (x:xs) b  = [Item x b] ++ getOptsFromList xs b
 
-getOptsFromAnsDists :: Int -> Answers a -> Int -> Distractors a -> [Options a Bool]
-getOptsFromAnsDists an ans dn dist =  a ++ d
-                                       where  a = (getOptsFromList (take an ans) True)
-                                              d = (getOptsFromList (take dn dist) False)
+getOptsFromAnsDists :: Int -> Answers a -> v -> Int -> Distractors a -> v -> [Options a v]
+getOptsFromAnsDists an ans v1 dn dist v2 =  a ++ d
+                                       where  a = (getOptsFromList (take an ans) v1)
+                                              d = (getOptsFromList (take dn dist) v2)
 
 -- getRandOptsFromAnsDists :: Int -> Answers a -> Int -> Distractors a -> IO [Options a Bool]
 -- getRandOptsFromAnsDists an ans dn dist = shuffle (a ++ d)
@@ -60,7 +59,7 @@ getQStringRelatedBy r = ("has a `" ++ getRelatedBy r ++ "` relationship with")
 
 getLDistractors :: (Eq a, Eq b, Ord a, Ord b) => Statement a -> Relation a b -> Distractors b 
 getLDistractors (L a s) r = [e | e <- (getRange r), e `notElem` (getRangeOf a r)]
-getLDistractors (R a s) r = []
+getLDistractors (R a s) r = [] 
 
 getRDistractors :: (Eq a, Eq b, Ord a, Ord b) => Statement b -> Relation a b -> Distractors a 
 getRDistractors (R b s) r = [e | e <- (getDomain r), e `notElem` (getDomainOf b r)]   

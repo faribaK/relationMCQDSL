@@ -35,14 +35,14 @@ d2 = getLDistractors s2 fatherchildR
 a2 = getLAnswers s2 fatherchildR 
 
 q2 :: Question String String Bool
-q2 = MCQ s2 (getOptsFromAnsDists 1 a2 2 d2)
+q2 = MCQ s2 (getOptsFromAnsDists 1 a2 True 2 d2 False)
 
 s6 = getRStatement 1 fatherchildR
 d6 = getRDistractors s6 fatherchildR 
 a6 = getRAnswers s6 fatherchildR 
 
 q6 :: Question String String Bool
-q6 = MCQ s6 (getOptsFromAnsDists 1 a6 2 d6)
+q6 = MCQ s6 (getOptsFromAnsDists 1 a6 True 2 d6 False)
           
 q3 = q1 :++: q2 :++: q6
 q3n = Quiz "Family Tree Questions: " q3
@@ -95,8 +95,8 @@ greatgrandParentChildR = compose grandParentChildR parentchildR
 q4:: Question String Int Bool
 q4 = MCQ (L ("3-1") "is equal to")
           (getOptsFromAnsDists 
-          1  [2]                         -- ans
-          2  [1, 3, 4] )                 -- dist
+          1  [2]         True                 -- ans
+          2  [1, 3, 4]   False )                -- dist
 
 q4n = Quiz "Math Questions: " q4 
 q5n = q3n :||: q4n 
@@ -136,9 +136,9 @@ categorySociety   = fromDomRanFullRWNames "categorized-into" "" ""
 -- | Builds all `class` contains `member` relation pairs with union
 
 contains = unions  [containsUpperR      -- keeps First elem names/ annotaions
-                     , containsMiddleR
-                     , containsLowerR
-                     ]
+                   , containsMiddleR
+                   , containsLowerR
+                   ]
 -- | Builds a higher order `contains` relation with compose 
 -- Example: if a `categorized into` b
 --          if b `has member` c
@@ -154,7 +154,7 @@ d7 = getLDistractors s7 contains
 a7 = getLAnswers s7 contains 
 
 q7 :: Question String String Bool
-q7 = MCQ s7 (getOptsFromAnsDists 1 a7 3 d7)
+q7 = MCQ s7 (getOptsFromAnsDists 1 a7 True 3 d7 False)
 
 q7n = Quiz "Social Studies Questions: " q7
 
