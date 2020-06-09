@@ -7,3 +7,4 @@ import SimpleExample
 
 main :: IO ()
 main = (execQuiz finalQuiz) >>= \s -> putStrLn (show s)
+-- main = (execQuiz finalQuiz) >>= \d -> print d >> (calcScore finalQuiz d)

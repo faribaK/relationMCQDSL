@@ -3,6 +3,10 @@ module SimpleExample where
 import BinRelationV3 
 import QuesGeneratorV3
 import ExecuteQuiz
+import Control.Monad
+import Control.Monad.Trans.Writer.Strict
+
+import qualified Data.List as L
 
 motherchildL = [("Alice", "Bob"  ), 
                 ("Alice", "Rachel"), 
@@ -22,27 +26,29 @@ fatherchildR = fromListWithNames "father-child" "" "" fatherchildL
 
 -- ["Bob", "Rachel"]
 -- ["April", "Jane"]
-q1:: Question String String Bool
-q1 = MCQ (L "Alice" "is mother of")
-        [  Item "Bob" True 
-          ,Item "April" False 
-          ,Item "Jane"  False 
-          ,Item "Rachel" True ]
+--q1:: Question String String Bool
+q1 = MCQ (S L "Alice" "is mother of")
+        [  Item "Bob"    "Correct"           1 
+          ,Item "April"  "Partially Correct" 0.5 
+          ,Item "Jane"   "Incorrect"         0.25 
+          ,Item "Rachel" "Correct"           1 ]
           
 
 s2 = getLStatement 1 fatherchildR
 d2 = getLDistractors s2 fatherchildR 
 a2 = getLAnswers s2 fatherchildR 
 
-q2 :: Question String String Bool
-q2 = MCQ s2 (getOptsFromAnsDists 1 a2 True 2 d2 False)
+--q2 :: Question String String Bool
+q2 = MCQ s2 (getOptsFromAnsDists 1 a2 [True]         [1.0] 
+                                 2 d2 [False, False] [0.0, 0.0])
 
 s6 = getRStatement 1 fatherchildR
 d6 = getRDistractors s6 fatherchildR 
 a6 = getRAnswers s6 fatherchildR 
 
-q6 :: Question String String Bool
-q6 = MCQ s6 (getOptsFromAnsDists 1 a6 True 2 d6 False)
+--q6 :: Question String String Bool
+q6 = MCQMA s6 (getOptsFromAnsDists 1 a6 [True]         [1.0] 
+                                 2 d6 [False, False] [-0.25, -0.25])
           
 q3 = q1 :++: q2 :++: q6
 q3n = Quiz "Family Tree Questions: " q3
@@ -92,11 +98,12 @@ greatgrandParentChildR = compose grandParentChildR parentchildR
 
 ------------------------------------------------------------------------------------------
 
-q4:: Question String Int Bool
-q4 = MCQ (L ("3-1") "is equal to")
+--q4:: Question String Int Bool
+q4 = MCQ (S L ("3-1") "is equal to")
+          (getNthPermutation 3
           (getOptsFromAnsDists 
-          1  [2]         True                 -- ans
-          2  [1, 3, 4]   False )                -- dist
+          1  [2]         [True]  [1.0]                -- ans
+          3  [1, 3, 4]   [False, False, False] [0.0, 0.0, 0.0] ))                -- dist
 
 q4n = Quiz "Math Questions: " q4 
 q5n = q3n :||: q4n 
@@ -135,7 +142,7 @@ categorySociety   = fromDomRanFullRWNames "categorized-into" "" ""
 
 -- | Builds all `class` contains `member` relation pairs with union
 
-contains = unions  [containsUpperR      -- keeps First elem names/ annotaions
+contains = unions  [ containsUpperR      -- keeps First elem names/ annotaions
                    , containsMiddleR
                    , containsLowerR
                    ]
@@ -149,20 +156,34 @@ contains = unions  [containsUpperR      -- keeps First elem names/ annotaions
 containsO2 = compose catPersianSociety contains
 
 
-s7 = L (getLValue 1 contains) "has member"
+s7 = S L (getLValue 1 contains) "has member"
 d7 = getLDistractors s7 contains 
 a7 = getLAnswers s7 contains 
 
-q7 :: Question String String Bool
-q7 = MCQ s7 (getOptsFromAnsDists 1 a7 True 3 d7 False)
+--q7 :: Question String String Bool
+q7 = MCQMA s7 (getOptsFromAnsDists 1 a7 [True]                [1.0] 
+                                 3 d7 [False, False, False] [0.0, 0.0, 0.0])
+--MCQ s7 (getOptsFromAnsDists 1 a7 True 3 d7 False)
 
-q7n = Quiz "Social Studies Questions: " q7
-
-finalQuiz = q5n :||: q7n
-
-
+containsEq = setRelatedBy "equivalent" (contains `prod` contains) 
+containsO2Eq = setRelatedBy "equivalent" (containsO2 `prod` containsO2) 
+containsUni = containsEq `union` containsO2Eq
 
 
+s8 = getLStatement 1 containsUni
+d8 = getLDistractors s8 containsUni 
+a8 = getLAnswers s8 (removeEqualFmEquiv containsUni)
+
+opts8 = (getOptsFromAnsDists 1 a8 [True]                [1.0] 
+                             3 d8 [False, False, False] [0.0, 0.0, 0.0])
+opts8per = getNthPermutation 4 opts8
+
+q8 = MCQ s8 opts8per
+
+q8n = Quiz "Social Studies Questions: " (q7 :||: q8)
+
+
+finalQuiz = q5n :||: q8n
 
 
 
