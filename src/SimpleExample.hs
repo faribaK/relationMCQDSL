@@ -4,7 +4,9 @@ import BinRelationV3
 import QuesGeneratorV3
 import ExecuteQuiz
 import Control.Monad
-import Control.Monad.Trans.Writer.Strict
+import Control.Monad.Trans.Writer
+import Control.Monad.Trans.State
+
 
 import qualified Data.List as L
 
@@ -27,7 +29,7 @@ fatherchildR = fromListWithNames "father-child" "" "" fatherchildL
 -- ["Bob", "Rachel"]
 -- ["April", "Jane"]
 --q1:: Question String String Bool
-q1 = MCQ (S L "Alice" "is mother of")
+q1 = MCQ SA (S L "Alice" "is mother of")
         [  Item "Bob"    "Correct"           1 
           ,Item "April"  "Partially Correct" 0.5 
           ,Item "Jane"   "Incorrect"         0.25 
@@ -39,7 +41,7 @@ d2 = getLDistractors s2 fatherchildR
 a2 = getLAnswers s2 fatherchildR 
 
 --q2 :: Question String String Bool
-q2 = MCQ s2 (getOptsFromAnsDists 1 a2 [True]         [1.0] 
+q2 = MCQ SA s2 (getOptsFromAnsDists 1 a2 [True]         [1.0] 
                                  2 d2 [False, False] [0.0, 0.0])
 
 s6 = getRStatement 1 fatherchildR
@@ -47,7 +49,7 @@ d6 = getRDistractors s6 fatherchildR
 a6 = getRAnswers s6 fatherchildR 
 
 --q6 :: Question String String Bool
-q6 = MCQMA s6 (getOptsFromAnsDists 1 a6 [True]         [1.0] 
+q6 = MCQ MA s6 (getOptsFromAnsDists 1 a6 [True]         [1.0] 
                                  2 d6 [False, False] [-0.25, -0.25])
           
 q3 = q1 :++: q2 :++: q6
@@ -99,14 +101,14 @@ greatgrandParentChildR = compose grandParentChildR parentchildR
 ------------------------------------------------------------------------------------------
 
 --q4:: Question String Int Bool
-q4 = MCQ (S L ("3-1") "is equal to")
+q4 = MCQ SA (S L ("3-1") "is equal to")
           (getNthPermutation 3
           (getOptsFromAnsDists 
           1  [2]         [True]  [1.0]                -- ans
           3  [1, 3, 4]   [False, False, False] [0.0, 0.0, 0.0] ))                -- dist
 
 q4n = Quiz "Math Questions: " q4 
-q5n = q3n :||: q4n 
+q5n = q3n :++: q4n 
 
 ----------------------------------------------------------------------------------
 -- universities
@@ -161,7 +163,7 @@ d7 = getLDistractors s7 contains
 a7 = getLAnswers s7 contains 
 
 --q7 :: Question String String Bool
-q7 = MCQMA s7 (getOptsFromAnsDists 1 a7 [True]                [1.0] 
+q7 = MCQ MA s7 (getOptsFromAnsDists 1 a7 [True]                [1.0] 
                                  3 d7 [False, False, False] [0.0, 0.0, 0.0])
 --MCQ s7 (getOptsFromAnsDists 1 a7 True 3 d7 False)
 
@@ -178,12 +180,12 @@ opts8 = (getOptsFromAnsDists 1 a8 [True]                [1.0]
                              3 d8 [False, False, False] [0.0, 0.0, 0.0])
 opts8per = getNthPermutation 4 opts8
 
-q8 = MCQ s8 opts8per
+q8 = MCQ SA s8 opts8per
 
-q8n = Quiz "Social Studies Questions: " (q7 :||: q8)
+q8n = Quiz "Social Studies Questions: " (q7 :++: q8)
 
 
-finalQuiz = q5n :||: q8n
+finalQuiz = q5n :++: q8n
 
 
 

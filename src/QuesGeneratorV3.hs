@@ -10,6 +10,7 @@ import qualified Data.Set as S
 type Distractors a = [a]
 type Answers a = [a]
 
+
 -- | A question statement with a key K, value a and String s
 -- | K indicates whether a is from domain (K = L) or range (K = R) of a Relation
 -- | s holds the string to ask the question [can be relation name or a string made with domain or range name]
@@ -29,16 +30,18 @@ data Options a v where
      deriving (Eq, Show)
 --  (:+:) :: Options a -> Options a -> Options a
 
+-- | choose one (SA) or all (MA) that apply
+data NumA = SA | MA deriving (Eq, Show)
 
 data Question a b where
- MCQ     :: (Show a, Show b, Show v) => Statement a  -> [Options b v]  -> Question a b 
- MCQMA   :: (Show a, Show b, Show v) => Statement a  -> [Options b v]  -> Question a b 
- (:++:)  :: Question a b -> Question a b  -> Question a b 
- (:||:)  :: Question a b -> Question c d  -> Question (a, c) (b, d) 
+ MCQ     :: (Show a, Show b, Show v) => NumA -> Statement a  -> [Options b v]  -> Question a b 
+--  MCQMA   :: (Show a, Show b, Show v) => Statement a  -> [Options b v]  -> Question a b 
+-- (:++:)  :: Question a b -> Question a b  -> Question a b 
+ (:++:)  :: Question a b -> Question c d  -> Question (a, c) (b, d) 
  Quiz    :: String       -> Question a b  -> Question a b 
  
-infixl 3 :++:
-infixl 2 :||: 
+infixl 2 :++:
+-- infixl 2 :||: 
 
 -- * smart constructors
 
