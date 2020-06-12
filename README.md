@@ -12,17 +12,18 @@ If you have [stack](https://docs.haskellstack.org/en/stable/README/) installed:
 
 Run `stack build`
     
-Now you can run an simple program written in DSL and take interactive quiz
+Now you can run the quiz `finalQuiz` created in the example (SimpleExample.hs) program written in DSL and take interactive quiz
     
-Run `stack exec relationMCQDSL-exe filename`
+Run `stack exec relationMCQDSL-exe`
+
+Or, you can write your own program in DSL and run your created quiz by replacing `finalQuiz` in `Main.hs` with your quiz name (quiz has type Question a b)
 
 This will display quiz questions one by one and prompt for answer.
 
-Once you are done with all questions, it will display the result.
+Once you are done with all questions, result will be printed.
    
-If you do not have stack, you can load Sim into `src/SimpleExample.hs` in ghci and run "execQuiz finalQuiz".
+If you do not have stack, you can load `src/SimpleExample.hs` in GHCi and run `runStateT (execQuiz finalQuiz) 0 >>= 
+       \(w, _) -> return (runWriter w)  >>= 
+       \(a, s) -> putStr (s ++ "\n Total Score: " ++ (show a)++"\n") `.
 
-### Design questions
-1. I want to randomize the MCQ options. This can be done when options are displayed which makes it easier to hadle randomIO. But I was wondering if I randomize the list and store it in a plain list so that user can later do whatever they want with the list.  
-2. In `QuesGeneratorV3.hs`, `Statement` is generated from a `Relation` through smart constructor, then Answers and Distractors are genrated from Statement and Relation. This later Relation should be the one from which Statement has been generated. I am thinking about enforcing that somehoe without overloading datat type i.e. make Relation part of Statement but do it in function level. Should I think about computation monad to achieve this?
-   
+Project Report includes several example expressions in section 4.3 Functions, which can be copied into GHCi after loading `src/SimpleExample.hs` and see values in action 

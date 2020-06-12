@@ -12,8 +12,9 @@ type Answers a = [a]
 
 
 -- | A question statement with a key K, value a and String s
--- | K indicates whether a is from domain (K = L) or range (K = R) of a Relation
--- | s holds the string to ask the question [can be relation name or a string made with domain or range name]
+-- | String holds the string to ask the question [can be relation name or a string made with domain or range name]
+-- | a holds a value from domain or range of a Relation and has respective type
+-- | K indicates whether blank should be placed on the left (K = L) or right (K = R) of a Relation
 -- | Example :
 -- | For a `father-son` relation pair (Mat, Ron), question statements can be like
 -- | S L Mat "is father of" | printed as: Mat is father of ___? Or,
@@ -25,23 +26,22 @@ data Statement a = S K a String deriving (Eq, Show)
 -- | to indicate wheter blank should be on the left or right 
 data K = L | R deriving (Eq, Show)
 
+-- | Options for multiple choice questions 
+-- | a holds a answer or distractor value
+-- | v holds an explanation or description for the option 
+-- | Double holds the score for the option
 data Options a v where
  Item  :: a -> v -> Double -> Options a v
      deriving (Eq, Show)
---  (:+:) :: Options a -> Options a -> Options a
 
 -- | choose one (SA) or all (MA) that apply
 data NumA = SA | MA deriving (Eq, Show)
 
 data Question a b where
  MCQ     :: (Show a, Show b, Show v) => NumA -> Statement a  -> [Options b v]  -> Question a b 
---  MCQMA   :: (Show a, Show b, Show v) => Statement a  -> [Options b v]  -> Question a b 
--- (:++:)  :: Question a b -> Question a b  -> Question a b 
  (:++:)  :: Question a b -> Question c d  -> Question (a, c) (b, d) 
  Quiz    :: String       -> Question a b  -> Question a b 
- 
 infixl 2 :++:
--- infixl 2 :||: 
 
 -- * smart constructors
 
@@ -49,16 +49,21 @@ infixl 2 :++:
 getStatement :: K -> a -> String -> Statement a
 getStatement k a s = S k a s
 
-getLStatement :: Ord a => Int -> Relation a b -> Statement a 
-getLStatement n r = S L (getNthDomain n r) (getQStringRelatedBy r)
+-- | get a K statement with nth domain element
+getDmStatement :: Ord a => K -> Int -> (Relation a b -> String) -> Relation a b -> Statement a 
+getDmStatement k n f r = S k (getNthDomain n r) (f r)
 
-getRStatement :: Ord b => Int -> Relation a b -> Statement b
-getRStatement n r = S R (getNthRange n r) (getQStringRelatedBy r)
+-- | get a K statement with nth range element
+getRnStatement :: Ord b => K -> Int -> (Relation a b -> String) -> Relation a b -> Statement b 
+getRnStatement k n f r = S k (getNthRange n r) (f r)
+
 
 getOptsFromList :: [a] -> [v] -> [Double] -> [Options a v]
 getOptsFromList (x:xs) (b:bs) (d:ds) = [Item x b d] ++ getOptsFromList xs bs ds
 getOptsFromList _       _      _     = []
 
+-- | generate option list from answer and distractor list
+-- | numofanswers -> answers -> explanations -> scores -> numoddistractors -> distractors -> explanations -> scores
 getOptsFromAnsDists :: Int -> Answers a -> [v] -> [Double] -> Int -> Distractors a -> [v] -> [Double] -> [Options a v]
 getOptsFromAnsDists an ans v1 d1 dn dist v2 d2 =  a ++ d
                                        where  a = (getOptsFromList (take an ans)  v1 d1)
@@ -70,75 +75,58 @@ geta (S _ a s) = a
 getS :: Statement a -> String
 getS (S _ a s) = s
 
+setS :: String -> Statement a -> Statement a
+setS s (S k a _) = S k a s
+
 getvOpt :: Options a v -> v
 getvOpt (Item a v d) = v
 
 getaOpt :: Options a v -> a
 getaOpt (Item a v d) = a
 
--- getRandOptsFromAnsDists :: Int -> Answers a -> Int -> Distractors a -> IO [Options a Bool]
--- getRandOptsFromAnsDists an ans dn dist = shuffle (a ++ d)
---                                              where  a = (getOptsFromList (take an ans) True)
---                                                     d = (getOptsFromList (take dn dist) False)
-
 -- * utility Function to get question element from a a Relation
-getLValue :: Ord a => Int -> Relation a b -> a 
-getLValue n r = (getNthDomain n r)
 
-getRValue :: Ord b => Int -> Relation a b -> b 
-getRValue n r = (getNthRange n r)
+-- | get n-th domain value from Relation
+getDmValue :: Ord a => Int -> Relation a b -> a 
+getDmValue n r = (getNthDomain n r)
 
+-- | get n-th range value from Relation
+getRnValue :: Ord b => Int -> Relation a b -> b 
+getRnValue n r = (getNthRange n r)
+
+-- | create question string/ phrase with relatedBy of Relation
 getQStringRelatedBy :: Relation a b -> String
-getQStringRelatedBy r = ("has a `" ++ getRelatedBy r ++ "` relationship with")
+getQStringRelatedBy r = ("has a " ++ getRelatedBy r ++ " relationship with")
 
-getLDistractors :: (Eq a, Eq b, Ord a, Ord b) => Statement a -> Relation a b -> Distractors b 
-getLDistractors (S _ a s) r = [e | e <- (getRange r), e `notElem` (getRangeOf a r)]
+-- | create question string/ phrase with domain name 
+getQStringDname :: Relation a b -> String
+getQStringDname r = ("is " ++ getDomainName r ++ " of")
 
-getRDistractors :: (Eq a, Eq b, Ord a, Ord b) => Statement b -> Relation a b -> Distractors a 
-getRDistractors (S _ b s) r = [e | e <- (getDomain r), e `notElem` (getDomainOf b r)]   
+-- | create question string/ phrase with range name 
+getQStringRname :: Relation a b -> String
+getQStringRname r = ("is " ++ getRangeName r ++ " of")
 
-getLAnswers :: (Eq a, Eq b, Ord a, Ord b) => Statement a -> Relation a b -> Answers b 
-getLAnswers (S _ a s) r = getRangeOf a r
+-- | get incorrect choices for a domain value
+getDmDistractors :: (Eq a, Eq b, Ord a, Ord b) => Statement a -> Relation a b -> Distractors b 
+getDmDistractors (S _ a s) r = [e | e <- (getRange r), e `notElem` (getRangeOf a r)]
 
-getRAnswers :: (Eq a, Eq b, Ord a, Ord b) => Statement b -> Relation a b -> Answers a 
-getRAnswers (S _ b s) r = getDomainOf b r 
+-- | get incorrect choices for a range value
+getRnDistractors :: (Eq a, Eq b, Ord a, Ord b) => Statement b -> Relation a b -> Distractors a 
+getRnDistractors (S _ b s) r = [e | e <- (getDomain r), e `notElem` (getDomainOf b r)]   
 
-getLDistractorsFrmFalse :: (Eq a, Eq b, Ord a, Ord b) => Statement a -> Relation a b -> Distractors b 
-getLDistractorsFrmFalse (S _ a s) r = getRangeOfFrmFalseEl a r
+-- | get all correct choices for a domain value
+getDmAnswers :: (Eq a, Eq b, Ord a, Ord b) => Statement a -> Relation a b -> Answers b 
+getDmAnswers (S _ a s) r = getRangeOf a r
 
-getRDistractorsFrmFalse :: (Eq a, Eq b, Ord a, Ord b) => Statement b -> Relation a b -> Distractors a 
-getRDistractorsFrmFalse (S _ b s) r = getDomainOfFrmFalseEl b r  
+-- | get correct choices for a range value
+getRnAnswers :: (Eq a, Eq b, Ord a, Ord b) => Statement b -> Relation a b -> Answers a 
+getRnAnswers (S _ b s) r = getDomainOf b r 
 
--- * list manipulation 
+-- | get incorrect choices from false elements (utility has not been fully investigated)
 
-getNthPermutation :: Int -> [a] -> [a]
-getNthPermutation n l = (L.permutations l) !! n
+getDmDistractorsFrmFalse :: (Eq a, Eq b, Ord a, Ord b) => Statement a -> Relation a b -> Distractors b 
+getDmDistractorsFrmFalse (S _ a s) r = getRangeOfFrmFalseEl a r
 
---instance (Show a, Show v) => Show (Options a v) where 
---  show (Empty)  = "\tEmpty"
---    show (Item a t)  = "Item " ++ (show a) ++ " " ++ (show t)   
---  show (i1 :+: i2) = show i1 ++ "\n" ++ show i2
-   
--- instance (Show (Options a)) => Show [Options a] where 
---  show (x:xs)  = "\tItem " ++ (show x) ++ "\n" ++ (show xs)  
+getRnDistractorsFrmFalse :: (Eq a, Eq b, Ord a, Ord b) => Statement b -> Relation a b -> Distractors a 
+getRnDistractorsFrmFalse (S _ b s) r = getDomainOfFrmFalseEl b r  
 
--- instance (Show a, Show b, Show v) => Show (Question a b v) where   
---    show (MCQ (L a s) opts)  = (show a) ++ " " ++ s ++ " ______" ++ "\n"
---                                  ++ map (\c -> if c==',' then '\n' else c) (show opts) ++ "\n"  
---    show (MCQ (R b s) opts)  = "______ " ++ s ++ " " ++ (show b) ++ "\n"
---                                  ++ map (\c -> if c==',' then '\n' else c) (show opts) ++ "\n"
--- --    show (RandMCQ (L a s) opts)  = (show a) ++ " " ++ s ++ " ______" ++ "\n"
--- --                                  ++ (show opts) ++ "\n"  
--- --    show (RandMCQ (R b s) opts)  = "______ " ++ s ++ " " ++ (show b) ++ "\n"
--- --                                  ++ (show opts) ++ "\n"
---    show (q1 :++: q2)             = show q1 ++ "\n" ++ show q2
---    show (q1 :||: q2)             = show q1 ++ "\n" ++ show q2
---    show (Quiz n ques)            = n ++ "\nn" ++ show ques 
-   
--- * random utlity
--- shuffle :: [a] -> IO [a]
--- shuffle l = if length l < 2 
---                  then return l else do
---                           i <- randomRIO (0, length(l)-1)
---                           r <- shuffle (take i l ++ drop (i+1) l)
---                           return (l!!i : r)

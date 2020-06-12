@@ -3,7 +3,6 @@ module SimpleExample where
 import BinRelationV3 
 import QuesGeneratorV3
 import ExecuteQuiz
-import Control.Monad
 import Control.Monad.Trans.Writer
 import Control.Monad.Trans.State
 
@@ -24,37 +23,48 @@ fatherchildL = [("Patrick", "Bob"    ),
 
 motherchildR = fromList motherchildL
 
-fatherchildR = fromListWithNames "father-child" "" "" fatherchildL
+fatherchildR = fromListWithNames "father-child" "father" "child" fatherchildL
 
--- ["Bob", "Rachel"]
--- ["April", "Jane"]
---q1:: Question String String Bool
-q1 = MCQ SA (S L "Alice" "is mother of")
+
+-- * Questions can be generatd manually wihtout calling any smart constructors
+-- | Question String String
+q1 = MCQ MA (S L "Alice" "is mother of")
         [  Item "Bob"    "Correct"           1 
           ,Item "April"  "Partially Correct" 0.5 
           ,Item "Jane"   "Incorrect"         0.25 
           ,Item "Rachel" "Correct"           1 ]
           
+-- * Question created with smart constructors for statement 
+--   and automated look up functions for answers and distractors
 
-s2 = getLStatement 1 fatherchildR
-d2 = getLDistractors s2 fatherchildR 
-a2 = getLAnswers s2 fatherchildR 
+-- | statement: a L statement with 1st domain element 
+-- | question string made with domain name (dname)
+s2 = getDmStatement L 0 getQStringDname fatherchildR
+-- | distractors
+d2 = getDmDistractors s2 fatherchildR 
+-- | answers
+a2 = getDmAnswers s2 fatherchildR 
 
---q2 :: Question String String Bool
+-- | getting rid of statement value from distractor list
+{- why? - domain and range have same type, distractor can contain statement value
+        as that's also an incorrect option which would be 'not wrong' but silly to add 
+        as a incorrect choice 
+-}
+d2' = [ s | s <- d2, s /= (geta s2)] 
 q2 = MCQ SA s2 (getOptsFromAnsDists 1 a2 [True]         [1.0] 
-                                 2 d2 [False, False] [0.0, 0.0])
+                                    2 d2' [False, False] [0.0, 0.0])
 
-s6 = getRStatement 1 fatherchildR
-d6 = getRDistractors s6 fatherchildR 
-a6 = getRAnswers s6 fatherchildR 
+-- * Question created with smart constructors and functions
+s6 = getRnStatement R 3 getQStringDname fatherchildR
+d6 = getRnDistractors s6 fatherchildR 
+a6 = getRnAnswers s6 fatherchildR
 
---q6 :: Question String String Bool
-q6 = MCQ MA s6 (getOptsFromAnsDists 1 a6 [True]         [1.0] 
-                                 2 d6 [False, False] [-0.25, -0.25])
+-- | getting rid of statement value from distractor list
+d6' = [ s | s <- d6, s /= (geta s6)] 
+
+q6 = MCQ SA s6 (getOptsFromAnsDists 1 a6 [True]         [1.0] 
+                                    2 d6' [False, False] [-0.25, -0.25])
           
-q3 = q1 :++: q2 :++: q6
-q3n = Quiz "Family Tree Questions: " q3
-
 -- * create relation from other relations 
 
 -- | Get `parent-child` relation from union of `father-child` and `mother-child`   
@@ -69,6 +79,21 @@ q3n = Quiz "Family Tree Questions: " q3
 parentchildR :: Relation String String
 parentchildR = setNames "parent-child" "parent" "child" 
                           (union motherchildR fatherchildR)
+
+-- * Question created with smart constructors and functions
+
+-- | statement: a R statement with 3rd range element 
+-- | question string made with domain name (dname)
+s61 = getDmStatement R 2 getQStringRname parentchildR
+-- | answers and distractors
+d61 = getDmDistractors s61 parentchildR 
+a61 = getDmAnswers s61 parentchildR 
+
+-- | getting rid of statement value from distractor list
+d61' = [ s | s <- d61, s /= (geta s61)] 
+--q6 :: Question String String Bool
+q61 = MCQ SA s61 (getOptsFromAnsDists 1 a61 [True]         [1.0] 
+                                      2 d61' [False, False] [0.0, 0.0])
  
 -- | Get `grandparent-child` relation from 
 --   from composing parentchildR with parentchildR
@@ -82,7 +107,8 @@ parentchildR = setNames "parent-child" "parent" "child"
 -- ("Matthew","Bob"),("Matthew","Rachel")
 -- ]
 grandParentChildR :: Relation String String
-grandParentChildR = compose parentchildR parentchildR
+grandParentChildR = compose parentchildR parentchildR 
+
 
 -- | Get `greatgrandparent-child` relation from 
 --   from composing grandParentChildR with parentchildR
@@ -98,21 +124,24 @@ grandParentChildR = compose parentchildR parentchildR
 greatgrandParentChildR :: Relation String String
 greatgrandParentChildR = compose grandParentChildR parentchildR
 
-------------------------------------------------------------------------------------------
+-- | Finally combining all generated question with a title
+q3 = q1 :++: q2 :++: q6 :++: q61
+q3n = Quiz "Family Tree Questions: " q3
 
---q4:: Question String Int Bool
+------------------------------------------------------------------------------------------
+-- * Math
+-- | Question String Int
 q4 = MCQ SA (S L ("3-1") "is equal to")
-          (getNthPermutation 3
           (getOptsFromAnsDists 
           1  [2]         [True]  [1.0]                -- ans
-          3  [1, 3, 4]   [False, False, False] [0.0, 0.0, 0.0] ))                -- dist
+          3  [1, 3, 4]   [False, False, False] [0.0, 0.0, 0.0] )                -- dist
 
 q4n = Quiz "Math Questions: " q4 
 q5n = q3n :++: q4n 
 
 ----------------------------------------------------------------------------------
--- universities
--- Persian Social Hierarchy 
+
+-- * Persian Social Hierarchy 
 
 societiesElems = ["Persian Society"]
 
@@ -134,7 +163,7 @@ containsMiddleR = fromDomRanFullRWNames "has member" "class" "member"
 containsLowerR  = fromDomRanFullRWNames "has member" "class" "member" 
                                   ["Lower Class"] lowerClassElems
 
-catPersianSociety = fromDomRanFullRWNames "categorized-into" "society" "category" 
+catPersianSociety = fromDomRanFullRWNames "categorized-into" "society" "class" 
                                   ["Persian Society"] persianSocietyCategory
 
 categorySociety   = fromDomRanFullRWNames "categorized-into" "" "" 
@@ -158,61 +187,29 @@ contains = unions  [ containsUpperR      -- keeps First elem names/ annotaions
 containsO2 = compose catPersianSociety contains
 
 
-s7 = S L (getLValue 1 contains) "has member"
-d7 = getLDistractors s7 contains 
-a7 = getLAnswers s7 contains 
+s7 = S L (getDmValue 1 contains) "has member"
+d7 = getDmDistractors s7 contains 
+a7 = getDmAnswers s7 contains 
 
---q7 :: Question String String Bool
 q7 = MCQ MA s7 (getOptsFromAnsDists 1 a7 [True]                [1.0] 
                                  3 d7 [False, False, False] [0.0, 0.0, 0.0])
---MCQ s7 (getOptsFromAnsDists 1 a7 True 3 d7 False)
 
-containsEq = setRelatedBy "equivalent" (contains `prod` contains) 
+containsEq   = setRelatedBy "equivalent" (contains `prod` contains) 
 containsO2Eq = setRelatedBy "equivalent" (containsO2 `prod` containsO2) 
-containsUni = containsEq `union` containsO2Eq
+containsUni  = containsEq `union` containsO2Eq
 
-
-s8 = getLStatement 1 containsUni
-d8 = getLDistractors s8 containsUni 
-a8 = getLAnswers s8 (removeEqualFmEquiv containsUni)
+-- | Question String String
+s8 = getDmStatement L 1 getQStringDname containsUni
+d8 = getDmDistractors s8 containsUni 
+a8 = getDmAnswers s8 (removeEqualFmEquiv containsUni)
 
 opts8 = (getOptsFromAnsDists 1 a8 [True]                [1.0] 
                              3 d8 [False, False, False] [0.0, 0.0, 0.0])
-opts8per = getNthPermutation 4 opts8
 
-q8 = MCQ SA s8 opts8per
+q8 = MCQ SA s8 opts8
 
 q8n = Quiz "Social Studies Questions: " (q7 :++: q8)
 
-
-finalQuiz = q5n :++: q8n
-
-
-
-
-
-
-
--- is above
-
--- generalOfficers = ["General", "Lieutenant General", "Major General"]
--- fieldOfficers = ["Colonel", "Lieutenant Colonel", "Major Colonel"]
--- 
--- CommissionedofficersHierarchyL = []
--- 
--- generalOfficersHierarchyL = [("General", "Lieutenant General")
---                             ,("Lieutenant General", "Major General")
---                             ]
--- 
--- fieldOfficersHierarchyL = [("Colonel", "Lieutenant Colonel")
---                           ,("Lieutenant Colonel", "Major Colonel")       
---                           ]
---    
--- -- | create relation using constructors (from list)
--- 
--- generalOfficersHierarchyR = fromList "is-ranked-above" "" "" generalOfficersHierarchyL
--- 
--- fieldOfficersHierarchyR = fromListWithNames "is-ranked-above" "" "" fatherchildL
---    
-   
-   
+-----------------------------------------------------------------------------------
+-- ** Final quiz combining all questions from all domains
+finalQuiz = Quiz "Mid Test: " (q5n :++: q8n)

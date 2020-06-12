@@ -11,7 +11,7 @@ import qualified Data.Sequence as Sq
 
 -- * Binary relation R on A B  - subset of A x B
 -- | Remarks: names once set can be used to create bulk of questions from a relation
--- |          without having to set question string for each one of them [see QuesGenerator]
+-- |          without having to set question statement for each question [see QuesGenerator]
 data Relation a b  = Relation
   { elements      :: S.Set (a, b)  -- all pair elements belong to the relation
   , falseElements :: S.Set (a, b)  -- some pair elements that do NOT belong to the relation 
@@ -88,9 +88,20 @@ prod r s = Relation
 -- | builds a Relation from the intersection of two relations: r and s 
 --   keep names same as `r`
 intersection :: (Ord a, Ord b) => Relation a b -> Relation a b -> Relation a b
-intersection r s = copyNamesFromR r (Relation
+intersection r s = Relation
    (S.intersection (elements r) (elements s))
-   (S.intersection (falseElements  r) (falseElements  s)) "" "" "")
+   (S.intersection (falseElements  r) (falseElements  s)) 
+   s1 s2 s3
+  where [s1, s2, s3] = getIntersectNames r s
+   
+-- | builds a Relation from the difference of two relations: r and s 
+--   keep names same as `r`
+difference :: (Ord a, Ord b) => Relation a b -> Relation a b -> Relation a b
+difference r s = Relation
+   (S.difference (elements r) (elements s))
+   (S.difference (falseElements  r) (falseElements  s)) 
+   s1 s2 s3
+  where [s1, s2, s3] = getDifferenceNames r s
 
 -- | insert a relation x and y in the relation r
 insert :: (Ord a, Ord b) => a -> b -> Relation a b -> Relation a b
@@ -157,13 +168,30 @@ setNames s1 s2 s3 r = setRelatedBy s1 $ setDomainName s2 $ setRangeName s3 r
 copyNamesFromR :: Relation c d -> Relation a b -> Relation a b 
 copyNamesFromR r s = setNames (relatedBy r) (dname r) (rname r)  s
 
+-- | generate names for two `union` -ed relations
+getUnionNames :: Relation a b -> Relation c d -> [String]
+getUnionNames r s = [ getRelatedBy r ++ " -or- " ++ getRelatedBy s 
+                    , getDomainName r
+                    , getRangeName  r]
+-- | generate names for two `intersection` -ed relations
+getIntersectNames :: Relation a b -> Relation c d -> [String]
+getIntersectNames r s = [ getRelatedBy r ++ " -and- " ++ getRelatedBy s 
+                        , getDomainName r
+                        , getRangeName  r]
+-- | generate names for two `intersection` -ed relations
+getDifferenceNames :: Relation a b -> Relation c d -> [String]
+getDifferenceNames r s = [ getRelatedBy r ++ " -not- " ++ getRelatedBy s 
+                         , getDomainName r
+                         , getRangeName  r]
 -- | generate names for two `Compose` -d relations
 getComposedNames :: Relation a b -> Relation b c -> [String]
-getComposedNames r s = [getRelatedBy r,  getDomainName r, getRangeName s]
+getComposedNames r s = [ getRelatedBy r ++ " -to- " ++ getRelatedBy s 
+                       , getDomainName r
+                       , getRangeName  s]
 
 -- | generate names for two `Product` -ed relations
 getProductNames :: Relation a b -> Relation c d -> [String]
-getProductNames r s = [ "(" ++ getRelatedBy r ++ " )--( " ++ getRelatedBy r ++ ")"
+getProductNames r s = [ "(" ++ getRelatedBy r ++ " )--( " ++ getRelatedBy s ++ ")"
                       , "(" ++ getDomainName r ++ "," ++ getDomainName s ++ ")"
                       , "(" ++ getRangeName r  ++ "," ++ getRangeName s  ++ ")"]
  
