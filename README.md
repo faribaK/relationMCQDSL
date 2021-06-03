@@ -4,7 +4,7 @@
 ### Project Goal
 Goal of this project is to create a domain specific language (DSL) that lets domain expert to represent knowledge i.e. related objects and their characteristics through mathematical relations. Compositional operations on relations facilitate user to describe complicated (higher order) relationships. DSL also includes constructs to create standard multiple choice question (MCQ) or quiz questions over user described relations. Thus, people from aforementioned domains or fields interested in creating MCQ questions can use this DSL can write a program describing related objects and create MCQ questions and executing the program will generate set of quiz questions. Quiz questions can be printed in any media of user choice. However, an execution function has been provided which generates interactive quiz and takes students response and display results at the end.
 
-For details: [See here](https://github.com/faribaK/relationMCQDSL/blob/master/project%20report/document.pdf)
+For details: [See Project Report](https://github.com/faribaK/relationMCQDSL/blob/master/project%20report/document.pdf)
 
 
 ### How to run it
